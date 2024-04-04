@@ -21,8 +21,8 @@ const AddWifiScreen = () => {
 
   const handleSaveWifi = () => {
     let wifiData = { name: name, address: address, password: password, sol: sol, userId: userId }; // Thêm userId vào dữ liệu wifi
-    let url_api_wifi = 'http://10.5.10.167:3000/api/wifi';
-
+    let url_api_wifi = 'http://192.161.176.103:3000/api/wifi';
+  
     fetch(url_api_wifi, {
         method: 'POST',
         headers: {
@@ -34,7 +34,11 @@ const AddWifiScreen = () => {
         if (res.status == 201)
             alert("Bạn đã thêm thông tin Wifi thành công")
             console.log("thanh cong")
-
+            props.onAddWifiSuccess();
+            setName('');
+            setAddress('');
+            setPassword('');
+            setSol('');
     })
         .catch((e) => {
             console.log(e);

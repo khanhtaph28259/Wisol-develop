@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, Button, TextInput } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react'; // ADD THIS
+import { View, Text, StyleSheet, FlatList, Image, Button, TextInput, RefreshControl } from 'react-native';
 import { Connection, PublicKey, Keypair, Transaction, SystemProgram } from '@solana/web3.js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import AddWifiScreen from './WifiScreen';
 import "react-native-get-random-values";
 
 const connection = new Connection("https://api.devnet.solana.com");
@@ -24,20 +25,31 @@ export default function WifiListScreen({
 }: WifiListScreenProps) {
   const [wifiList, setWifiList] = useState<Wifi[]>([]);
   const [searchAddress, setSearchAddress] = useState<string>('');
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    fetchWifiList();
-  }, []);
-
-  const fetchWifiList = async () => {
+  const fetchWifiList = useCallback( async () => {
     try {
-      const response = await fetch('http://10.5.10.167:3000/wifis');
+      const response = await fetch('http://192.161.176.103:3000/wifis');
       const data = await response.json();
       setWifiList(data);
     } catch (error) {
       console.error('Error:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchWifiList();
+  }, [fetchWifiList]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchWifiList().then(() => {
+      setTimeout(() => {
+        setRefreshing(false);
+      }, 2000);
+    });
+  }, [fetchWifiList]);
+  
 
   const handleBuy = async (wifi: Wifi) => {
     try {
@@ -73,7 +85,7 @@ export default function WifiListScreen({
 
 
       // Send user info and wifi id to API
-      fetch('http://10.5.10.167:3000/transactions', {
+      fetch('http://192.161.176.103:3000/transactions', {
         method: 'POST',
         headers: {
           Accept: 'application/json',
@@ -98,30 +110,34 @@ export default function WifiListScreen({
   };
   
 
-  const handleSearch = () => {
-    if (searchAddress.length > 0) {
-      setWifiList(wifiList.filter(wifi => wifi.address.includes(searchAddress)));
+  const handleSearch = (txt: string) => {
+    setSearchAddress(txt);
+    if (txt.length > 0) {
+      setWifiList(wifiList.filter(wifi => wifi.address.toLowerCase().includes(txt.toLowerCase())));
     } else {
       fetchWifiList();
     }
   };
+  
 
   return (
     <View style={styles.container}>
+    <View style={styles.searchContainer}>
       <TextInput
         style={styles.input}
         placeholder="Nhập địa chỉ để tìm kiếm"
-        placeholderTextColor='#F5FFEE'
+        placeholderTextColor='#000'
         value={searchAddress}
-        onChangeText={(txt) => setSearchAddress(txt)}
+        onChangeText={handleSearch} 
       />
-      <View style={{ marginBottom: 10 }}>
-         <Button title="Tìm kiếm"  onPress={handleSearch} />
-      </View>
-     
+    </View>
       <FlatList
         data={wifiList}
         keyExtractor={(item) => item._id}
+        numColumns={2}
+        refreshControl={ // ADD THIS
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} /> // ADD THIS
+        } // ADD THIS
         renderItem={({ item }) => (
           <View style={styles.listItem}>
             <Image source={require('./logo1.png')} style={styles.image} />
@@ -140,10 +156,7 @@ export default function WifiListScreen({
 
 const styles = StyleSheet.create({
   container: {
-
     padding: 16,
-   
-   
   },
   heading: {
     fontSize: 24,
@@ -159,7 +172,8 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 10,
     backgroundColor: '#f5f5f5',
-    width: 300,
+    width: '45%',
+    margin: '2.5%',
   },
   listItemText: {
     fontSize: 16,
@@ -173,12 +187,22 @@ const styles = StyleSheet.create({
   infoContainer: {
     flex: 1,
   },
+  searchContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 5,
+    marginBottom: 10,
+    padding: 10, // Thêm padding để tạo không gian xung quanh các phần tử
+  },
   input: {
+    flex: 1,
     height: 40,
     borderColor: 'gray',
     borderWidth: 1,
-    marginBottom: 16,
     paddingHorizontal: 8,
+    marginRight: 10, // Thêm marginRight để tạo không gian giữa ô nhập và nút
   },
 });
 

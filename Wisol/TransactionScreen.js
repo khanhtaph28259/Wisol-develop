@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'; // ADD THIS
 import { View, Text, StyleSheet, FlatList, Image, Alert} from 'react-native';
 import { TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native'; 
+import { RefreshControl } from 'react-native';
 
 const TransactionScreen = ({ onTransactionComplete }) => {
   const [transactions, setTransactions] = useState([]);
@@ -16,12 +17,12 @@ const TransactionScreen = ({ onTransactionComplete }) => {
   const fetchTransactions = async () => {
     const userInfo = JSON.parse(await AsyncStorage.getItem('loginInfo'));
     setUser(userInfo);
-    fetch(`http://10.5.10.167:3000/transactions/${userInfo._id}`)
+    fetch(`http://192.161.176.103:3000/transactions/${userInfo._id}`)
       .then(response => response.json())
       .then(data => {
         setTransactions(data);
         data.forEach(transaction => {
-          fetch(`http://10.5.10.167:3000/wifis/${transaction.wifiId}`)
+          fetch(`http://192.161.176.103:3000/wifis/${transaction.wifiId}`)
             .then(response => response.json())
             .then(wifi => {
               setWifiDetails(prevState => ({ ...prevState, [transaction.wifiId]: wifi }));
@@ -32,7 +33,7 @@ const TransactionScreen = ({ onTransactionComplete }) => {
       .catch(error => console.error('Error:', error));
 
     // Fetch total SOL
-    fetch(`http://10.5.10.167:3000/users/${userInfo._id}/total-sol`)
+    fetch(`http://192.161.176.103:3000/users/${userInfo._id}/total-sol`)
       .then(response => response.json())
       .then(data => {
         setTotalSol(data.totalSol);
@@ -57,6 +58,15 @@ const TransactionScreen = ({ onTransactionComplete }) => {
   useEffect(() => {
     setRefreshKey(prevKey => prevKey + 1);
   }, [onTransactionComplete]);
+
+  const [refreshing, setRefreshing] = useState(false);
+
+const onRefresh = useCallback(() => {
+  setRefreshing(true);
+  fetchTransactions().then(() => {
+    setRefreshing(false);
+  });
+}, []);
 
   const handleLogout = () => {
     Alert.alert(
@@ -101,6 +111,9 @@ const TransactionScreen = ({ onTransactionComplete }) => {
       <FlatList
         data={transactions}
         keyExtractor={(item) => item._id}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         renderItem={({ item }) => (
           <View style={styles.listItem}>
             <Text style={styles.listItemText}>Tên Wifi: {wifiDetails[item.wifiId]?.name}</Text>

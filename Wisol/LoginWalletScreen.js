@@ -10,7 +10,7 @@ const LoginWalletScreen = ({ navigation }) => {
   const [solBalance, setSolBalance] = useState(null);
 
   const handleLogin = async () => {
-    let url_api = "http:/10.5.10.167:3000/login";
+    let url_api = "http://192.161.176.103:3000/login";
     fetch(url_api, {
       method: 'POST',
       headers: {
